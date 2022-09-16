@@ -4,27 +4,35 @@
 #include <time.h>
 #pragma warning (disable : 4996)
 
-
+struct oscerActor_Header {
+	int version;
+	int itemsCount;
+	char reserve[100];
+};
+struct oscerActor_Header header;
 struct oscarActor {
 	int index;
 	int year;
 	int age;
 	char movie[100];
 	char name[100];
+	int popularity;
 	struct oscarActor* next;
 	struct oscarActor* prev;
 };
 struct oscarActor* head = NULL;
 struct oscarActor* tail = NULL;
 
+// add actor to the list
 void addActor(int index, int year, int age, char movie[100], char name[100]) {
 	struct oscarActor* currentActor;
-	currentActor = (struct oscarActor*)malloc(sizeof(struct oscarActor));
+	currentActor = (struct oscarActor*) malloc(sizeof(struct oscarActor));
 	currentActor->index = index;
 	currentActor->year = year;
 	currentActor->age = age;
 	strcpy(currentActor->movie, movie);
 	strcpy(currentActor->name, name);
+	currentActor->popularity = 0;
 	currentActor->next = NULL;
 	if (head == NULL) {
 		head = currentActor;
@@ -39,7 +47,7 @@ void addActor(int index, int year, int age, char movie[100], char name[100]) {
 	}
 }
 
-
+// parsing from a txt file into a list
 void parsingIntoList(char fileName[100]) {
 	
 		FILE* file;
@@ -87,19 +95,19 @@ void parsingIntoList(char fileName[100]) {
 		fclose(file);
 }
 
+// reading a txt file and parsing it into a list
 void loadFile(char fileName[100]) {
-
 	FILE* fp;
 	fp = fopen(fileName, "r");
 	if (fp == NULL)
 	{
 		printf("Error opening file\n");
 		return;
-
 	}
 	parsingIntoList(fileName);
 }
 
+// print the list
 void printList() {
 	struct oscarActor* currentActor = head;
 	while (currentActor != NULL)
@@ -109,6 +117,7 @@ void printList() {
 	}
 }
 
+// print list by year
 void PrintAllMoviesForYear(int Year) {
 	{
 		struct oscarActor* currentActor = head;
@@ -122,23 +131,125 @@ void PrintAllMoviesForYear(int Year) {
 		}
 	}
 }
+// print movie by index
 void GetMovieByIndex(int Index) {
+
+	struct oscarActor* currentActor = head;
+	while (currentActor != NULL)
 	{
-		struct oscarActor* currentActor = head;
-		while (currentActor != NULL)
+		if (currentActor->index == Index)
 		{
-			if (currentActor->index == Index)
-			{
-				printf("%s\n", currentActor->movie);
-			}
-			currentActor = currentActor->next;
+			printf("%s\n", currentActor->movie);
 		}
-	} {
+		currentActor = currentActor->next;
+	} 
+}
+
+// updating actor popularity
+void updatePopularity(int Index) {
+	struct oscarActor* currentActor = head;
+	while (currentActor != NULL)
+	{
+		if (currentActor->index == Index)
+		{
+			currentActor->popularity++;
+		}
+		currentActor = currentActor->next;
 	}
 }
 
+// returns the items count
+int getItemCount() {
+		int count = 0;
+		struct oscarActor* currentActor = head;
+		while (currentActor != NULL)
+		{
+			count++;
+			currentActor = currentActor->next;
+		}
+		return count;
+}
+// runs a random numbers and updates the popularity if they're equal index in the list
+void run() {
+	int i = 0;
+	time_t timeNow;
+	srand(time(NULL));
+	while (i < 1000) {
+			int randomIndex = rand() % 100;
+			if (randomIndex > 0 && randomIndex < getItemCount) {
+				updatePopularity(randomIndex);
+			}
+			i++;
+	}
+}
+
+// function that save linked list to a file
+
+void save(char fileName[100]) {
+	//struct oscerActor_Header header;
+	header.version = 1;
+	header.itemsCount = getItemCount();
+	FILE* f;
+	f = fopen(fileName, "w");
+	if (f == NULL) {
+		printf("Error");
+	}
+	// write the header only
+	fwrite(&header, sizeof(struct oscerActor_Header), 1, f);
+	
+	// write to file all the items in the list one by one
+	struct oscarActor* currActor = head;
+	for (int i = 0; i < header.itemsCount; i++)
+	{
+		fwrite(currActor, sizeof(struct oscarActor), 1, f);
+		currActor = currActor->next;
+	}
+	fclose(f);
+}
+
+// function that load linked from a file
+
+void load(char fileName[100]) {
+	FILE* f;
+	f = fopen(fileName, "r");
+	if (f == NULL) {
+		printf("Error");
+	}
+	
+	if (fread(&header, sizeof(struct oscerActor_Header), 1, f) != 0) {
+		head = NULL;
+		tail = NULL;
+		for (int i = 0; i < header.itemsCount; i++)
+		{
+			struct oscarActor* currActor = (struct oscarActor*) malloc(sizeof(struct oscarActor));
+			fread(currActor, sizeof(struct oscarActor), 1, f); 
+			addActor(currActor->index, currActor->year, currActor->age, currActor->movie, currActor->name);
+		}
+	}
+}
+
+// print the most popular winner name
+void mostPopularWinner() {
+	int currMax = 0;
+	char currPrint[100];
+	struct oscarActor* currentActor = head;
+	while (currentActor != NULL)
+	{
+		if (currentActor->popularity > currMax)
+		{
+			strcpy(currPrint, currentActor->name);
+			currMax = currentActor->popularity;
+		}
+		currentActor = currentActor->next;
+	}
+	printf("%s %d", currPrint,currMax);
+}
+
 	int main(){
-		loadFile("oscar_age_female.csv");
-		printList();
+		//loadFile("C:\\Users\\Amir Offir\\VSC-workspace\\ZioNet Course\\oscar_age_female.csv");
+		//save("acotesList.bin");
+		load("C:\\Users\\Amir Offir\\Downloads\\hen4.bin");
+		//load("acotesList.bin");
+	printList();
 		return 0;
 	};
